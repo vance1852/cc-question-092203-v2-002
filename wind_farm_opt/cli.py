@@ -111,6 +111,14 @@ class WindFarmOptimizerCLI:
 
         print(f"已生成 {self.config.n_turbines} 台风机的网格布局")
 
+        spec = self.turbines[0].summary()
+        print(
+            f"机型 {spec['name']}: 额定 {spec['rated_power_MW']:.2f} MW，"
+            f"切入 {spec['cut_in_speed']:g} m/s，"
+            f"额定风速 {spec['rated_speed']:g} m/s，"
+            f"切出 {spec['cut_out_speed']:g} m/s"
+        )
+
         self.baseline_result = self.aep_calc.compute_farm_aep(self.baseline_positions)
         self._print_result_summary(self.baseline_result, "基线布局")
 
@@ -405,6 +413,7 @@ class WindFarmOptimizerCLI:
             "config": {
                 "n_turbines": self.config.n_turbines,
                 "turbine_model": self.config.turbine_model,
+                "turbine": self.turbines[0].summary(),
                 "wake_model": self.config.wake_model,
                 "min_spacing_multiple": self.config.optimization.min_spacing_multiple,
             },

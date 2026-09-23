@@ -132,7 +132,6 @@ class AEPCalculator:
         self._rotor_diameters = np.array([t.rotor_diameter for t in turbines], dtype=np.float64)
         self._thrust_coefficients = np.array([t.thrust_coefficient for t in turbines], dtype=np.float64)
         self._rated_powers = np.array([t.rated_power for t in turbines], dtype=np.float64)
-        self._power_curves = [t.power_curve for t in turbines]
         self._hub_heights = np.array([t.hub_height for t in turbines], dtype=np.float64)
 
         self._precompute_power_lookups()
@@ -253,13 +252,7 @@ class AEPCalculator:
 
         net_power = np.zeros((n_turb, n_speed))
         for i in range(n_turb):
-            net_power[i] = np.interp(
-                effective_speeds[i],
-                self._power_curves[i][:, 0],
-                self._power_curves[i][:, 1],
-                left=0.0,
-                right=0.0,
-            )
+            net_power[i] = self.turbines[i].power(effective_speeds[i])
 
         gross_power = self._power_lookup
 
@@ -334,13 +327,7 @@ class AEPCalculator:
                     continue
 
                 effective_speeds = self._speed_centers * (1.0 - deficit_i_on_j)
-                power_def = np.interp(
-                    effective_speeds,
-                    self._power_curves[j][:, 0],
-                    self._power_curves[j][:, 1],
-                    left=0.0,
-                    right=0.0,
-                )
+                power_def = self.turbines[j].power(effective_speeds)
                 power_gross = self._power_lookup[j]
 
                 loss_ij = np.sum((power_gross - power_def) * frequency * hours_per_year * prob)
@@ -480,13 +467,7 @@ class AEPCalculator:
             effective_speeds = self._speed_centers[np.newaxis, :] * (1.0 - total_deficit[:, np.newaxis])
 
             for i in range(n_turb):
-                power = np.interp(
-                    effective_speeds[i],
-                    self._power_curves[i][:, 0],
-                    self._power_curves[i][:, 1],
-                    left=0.0,
-                    right=0.0,
-                )
+                power = self.turbines[i].power(effective_speeds[i])
                 net_aep += float(np.sum(power * prob * 8760.0 * freq))
 
         return net_aep / 1e3

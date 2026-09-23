@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .turbine import interp_power_curve, normalize_power_curve
+
 
 class WakeModel(ABC):
     """尾流模型抽象基类。"""
@@ -303,6 +305,9 @@ def compute_wake_interactions(
     n = positions.shape[0]
     interactions = []
 
+    # 规范化每条功率曲线，保证插值遵循统一的切入/切出边界约定。
+    norm_curves = [normalize_power_curve(pc) for pc in power_curves]
+
     wind_rad = np.deg2rad(270.0 - wind_direction)
     wind_vec = np.array([np.cos(wind_rad), np.sin(wind_rad)])
 
@@ -336,10 +341,9 @@ def compute_wake_interactions(
             angle_deg = float(np.rad2deg(np.arccos(along_wind)))
 
             effective_speed = free_stream_speed * (1.0 - deficit)
-            power_free = np.interp(free_stream_speed, power_curves[j][:, 0], power_curves[j][:, 1],
-                                  left=0.0, right=0.0)
-            power_wake = np.interp(effective_speed, power_curves[j][:, 0], power_curves[j][:, 1],
-                                  left=0.0, right=0.0)
+            norm_ws, norm_pw = norm_curves[j]
+            power_free = interp_power_curve(free_stream_speed, norm_ws, norm_pw)
+            power_wake = interp_power_curve(effective_speed, norm_ws, norm_pw)
             power_loss = power_free - power_wake
 
             in_wake = radial_factor > 0.01 and deficit > 0.001
